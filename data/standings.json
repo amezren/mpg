@@ -1,0 +1,326 @@
+{
+  "league": "Ligue MPG",
+  "generated_at": "2026-09-20T19:58:08+02:00",
+  "total_matchdays": 10,
+  "identity_key": "team",
+  "latest": {
+    "season_id": "S1",
+    "season_label": "Saison 1",
+    "matchday": 5,
+    "total_matchdays": 10,
+    "is_final": false,
+    "captured_at": "2026-09-20T19:50:15+02:00",
+    "screenshot": "data/shots/2026-09-20_1950_S1-MD05.png",
+    "rows": [
+      {
+        "rank": 1,
+        "team": "MiaSanMia",
+        "manager": "",
+        "played": 5,
+        "points": 11,
+        "wins": 3,
+        "draws": 2,
+        "losses": 0,
+        "goal_diff": 8,
+        "goals_for": null,
+        "goals_against": null
+      },
+      {
+        "rank": 2,
+        "team": "Pantographs",
+        "manager": "",
+        "played": 5,
+        "points": 10,
+        "wins": 3,
+        "draws": 1,
+        "losses": 1,
+        "goal_diff": 13,
+        "goals_for": null,
+        "goals_against": null
+      },
+      {
+        "rank": 3,
+        "team": "TFC",
+        "manager": "",
+        "played": 5,
+        "points": 7,
+        "wins": 2,
+        "draws": 1,
+        "losses": 2,
+        "goal_diff": 3,
+        "goals_for": null,
+        "goals_against": null
+      },
+      {
+        "rank": 4,
+        "team": "Francky",
+        "manager": "",
+        "played": 5,
+        "points": 6,
+        "wins": 1,
+        "draws": 3,
+        "losses": 1,
+        "goal_diff": -1,
+        "goals_for": null,
+        "goals_against": null
+      },
+      {
+        "rank": 5,
+        "team": "Real Toulouse",
+        "manager": "",
+        "played": 5,
+        "points": 4,
+        "wins": 1,
+        "draws": 1,
+        "losses": 3,
+        "goal_diff": -12,
+        "goals_for": null,
+        "goals_against": null
+      },
+      {
+        "rank": 6,
+        "team": "Racing Zz",
+        "manager": "",
+        "played": 5,
+        "points": 3,
+        "wins": 1,
+        "draws": 0,
+        "losses": 4,
+        "goal_diff": -11,
+        "goals_for": null,
+        "goals_against": null
+      }
+    ]
+  },
+  "seasons": [
+    {
+      "season_id": "S1",
+      "season_label": "Saison 1",
+      "matchday": 5,
+      "total_matchdays": 10,
+      "is_final": false,
+      "captured_at": "2026-09-20T19:50:15+02:00",
+      "screenshot": "data/shots/2026-09-20_1950_S1-MD05.png",
+      "rows": [
+        {
+          "rank": 1,
+          "team": "MiaSanMia",
+          "manager": "",
+          "played": 5,
+          "points": 11,
+          "wins": 3,
+          "draws": 2,
+          "losses": 0,
+          "goal_diff": 8,
+          "goals_for": null,
+          "goals_against": null
+        },
+        {
+          "rank": 2,
+          "team": "Pantographs",
+          "manager": "",
+          "played": 5,
+          "points": 10,
+          "wins": 3,
+          "draws": 1,
+          "losses": 1,
+          "goal_diff": 13,
+          "goals_for": null,
+          "goals_against": null
+        },
+        {
+          "rank": 3,
+          "team": "TFC",
+          "manager": "",
+          "played": 5,
+          "points": 7,
+          "wins": 2,
+          "draws": 1,
+          "losses": 2,
+          "goal_diff": 3,
+          "goals_for": null,
+          "goals_against": null
+        },
+        {
+          "rank": 4,
+          "team": "Francky",
+          "manager": "",
+          "played": 5,
+          "points": 6,
+          "wins": 1,
+          "draws": 3,
+          "losses": 1,
+          "goal_diff": -1,
+          "goals_for": null,
+          "goals_against": null
+        },
+        {
+          "rank": 5,
+          "team": "Real Toulouse",
+          "manager": "",
+          "played": 5,
+          "points": 4,
+          "wins": 1,
+          "draws": 1,
+          "losses": 3,
+          "goal_diff": -12,
+          "goals_for": null,
+          "goals_against": null
+        },
+        {
+          "rank": 6,
+          "team": "Racing Zz",
+          "manager": "",
+          "played": 5,
+          "points": 3,
+          "wins": 1,
+          "draws": 0,
+          "losses": 4,
+          "goal_diff": -11,
+          "goals_for": null,
+          "goals_against": null
+        }
+      ]
+    }
+  ],
+  "alltime": [
+    {
+      "rank": 1,
+      "identity": "MiaSanMia",
+      "teams": "MiaSanMia",
+      "seasons": 1,
+      "played": 5,
+      "points": 11,
+      "wins": 3,
+      "draws": 2,
+      "losses": 0,
+      "goal_diff": 8,
+      "points_per_match": 2.2,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 1,
+      "worst_rank": 1
+    },
+    {
+      "rank": 2,
+      "identity": "Pantographs",
+      "teams": "Pantographs",
+      "seasons": 1,
+      "played": 5,
+      "points": 10,
+      "wins": 3,
+      "draws": 1,
+      "losses": 1,
+      "goal_diff": 13,
+      "points_per_match": 2.0,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 2,
+      "worst_rank": 2
+    },
+    {
+      "rank": 3,
+      "identity": "TFC",
+      "teams": "TFC",
+      "seasons": 1,
+      "played": 5,
+      "points": 7,
+      "wins": 2,
+      "draws": 1,
+      "losses": 2,
+      "goal_diff": 3,
+      "points_per_match": 1.4,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 3,
+      "worst_rank": 3
+    },
+    {
+      "rank": 4,
+      "identity": "Francky",
+      "teams": "Francky",
+      "seasons": 1,
+      "played": 5,
+      "points": 6,
+      "wins": 1,
+      "draws": 3,
+      "losses": 1,
+      "goal_diff": -1,
+      "points_per_match": 1.2,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 4,
+      "worst_rank": 4
+    },
+    {
+      "rank": 5,
+      "identity": "Real Toulouse",
+      "teams": "Real Toulouse",
+      "seasons": 1,
+      "played": 5,
+      "points": 4,
+      "wins": 1,
+      "draws": 1,
+      "losses": 3,
+      "goal_diff": -12,
+      "points_per_match": 0.8,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 5,
+      "worst_rank": 5
+    },
+    {
+      "rank": 6,
+      "identity": "Racing Zz",
+      "teams": "Racing Zz",
+      "seasons": 1,
+      "played": 5,
+      "points": 3,
+      "wins": 1,
+      "draws": 0,
+      "losses": 4,
+      "goal_diff": -11,
+      "points_per_match": 0.6,
+      "titles": 0,
+      "podiums": 0,
+      "best_rank": 6,
+      "worst_rank": 6
+    }
+  ],
+  "progression": [
+    {
+      "season_id": "S1",
+      "season_label": "Saison 1",
+      "points": {
+        "MiaSanMia": {
+          "5": 11
+        },
+        "Pantographs": {
+          "5": 10
+        },
+        "TFC": {
+          "5": 7
+        },
+        "Francky": {
+          "5": 6
+        },
+        "Real Toulouse": {
+          "5": 4
+        },
+        "Racing Zz": {
+          "5": 3
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "captured_at": "2026-09-20T19:50:15+02:00",
+      "season_id": "S1",
+      "season_label": "Saison 1",
+      "matchday": 5,
+      "kind": "regular",
+      "teams": 6
+    }
+  ]
+}
