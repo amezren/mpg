@@ -49,6 +49,10 @@
   }
   .panel h2 { font-size: 1.05rem; margin: 0 0 2px; }
   .meta { color: var(--muted); font-size: 0.82rem; margin-bottom: 14px; }
+  .note {
+    color: var(--muted); font-size: 0.82rem; margin: 0 0 14px;
+    padding-left: 10px; border-left: 2px solid var(--accent);
+  }
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 999px;
     background: var(--final); color: var(--ink); font-size: 0.74rem; margin-left: 6px;
@@ -81,18 +85,18 @@
 </div>
 
 <script>
-// MPG publishes G / N / P / +/- / Pts only; goals for and against are shown
-// when a table happens to carry them.
+// Exactly the columns MPG shows, in MPG's order. `J` and the rest only
+// appear on a cumulative table, where seasons of unequal length have to be
+// made comparable.
 const BASE_COLS = [
-  ["points", "Pts", "pts"], ["played", "J", ""], ["wins", "G", ""],
-  ["draws", "N", ""], ["losses", "P", ""], ["goal_diff", "+/-", ""]
+  ["wins", "G."], ["draws", "N."], ["losses", "P."],
+  ["goal_diff", "+/-"], ["points", "Pts", "pts"]
 ];
-const GOAL_COLS = [["goals_for", "bp", ""], ["goals_against", "bc", ""]];
-const ALLTIME_COLS = [
-  ["points", "Pts", "pts"], ["played", "J", ""], ["wins", "G", ""], ["draws", "N", ""],
-  ["losses", "P", ""], ["goal_diff", "+/-", ""], ["points_per_match", "Pts/m", ""],
-  ["seasons", "Saisons", ""], ["titles", "Titres", ""]
-];
+const GOAL_COLS = [["goals_for", "bp"], ["goals_against", "bc"]];
+const SUM_COLS = BASE_COLS.concat([
+  ["played", "J"], ["seasons", "Saisons"], ["points_per_match", "Pts/m"],
+  ["titles", "Titres"]
+]);
 const colsFor = (rows) =>
   rows.some((r) => r.goals_for !== null && r.goals_for !== undefined)
     ? BASE_COLS.concat(GOAL_COLS)
@@ -116,7 +120,7 @@ function table(rows, cols, labelKey, subKey) {
   // MPG shows team names only, so the second label column is dropped unless
   // there is something to put in it (a manager, or names used in past seasons).
   const hasSub = rows.some((r) => (r[subKey] || "").trim() !== "" && r[subKey] !== r[labelKey]);
-  const head = el("tr", {}, [el("th", {}, "#"), el("th", {}, "Équipe")]);
+  const head = el("tr", {}, [el("th", {}, "#"), el("th", {}, "Équipes")]);
   if (hasSub) head.append(el("th", {}, labelKey === "identity" ? "Autres noms" : "Manager"));
   for (const [, label] of cols) head.append(el("th", {}, label));
 
@@ -128,9 +132,12 @@ function table(rows, cols, labelKey, subKey) {
     if (hasSub) tr.append(el("td", {}, el("span", { class: "pos" }, row[subKey] || "")));
     for (const [key, , cls] of cols) {
       const raw = row[key];
-      const value = raw === null || raw === undefined
-        ? "-"
-        : (key === "goal_diff" ? signed(raw) : raw);
+      let value = "-";
+      if (raw !== null && raw !== undefined) {
+        value = key === "goal_diff" ? signed(raw)
+          : key === "points_per_match" ? Number(raw).toFixed(2).replace(".", ",")
+          : raw;
+      }
       tr.append(el("td", cls ? { class: cls } : {}, String(value)));
     }
     body.append(tr);
@@ -145,18 +152,36 @@ function standingPanel(standing) {
   const parts = [
     el("h2", {}, [standing.season_label, final]),
     el("div", { class: "meta" },
-      `Journée ${standing.matchday}/${standing.total_matchdays} · relevé du ${when(standing.captured_at)}`),
+      `saison de football ${standing.football_season} · journée ` +
+      `${standing.matchday}/${standing.total_matchdays} · ` +
+      `${standing.rows.length} équipes · relevé du ${when(standing.captured_at)}`),
     table(standing.rows, colsFor(standing.rows), "team", "manager")
   ];
   return parts;
 }
 
 function alltimePanel(data) {
-  const seasons = data.seasons.map((s) => `${s.season_label} (J${s.matchday})`).join(" · ");
+  const seasons = data.seasons
+    .map((s) => `${s.season_label} ${s.football_season} (J${s.matchday})`)
+    .join(" · ");
   return [
-    el("h2", {}, "Classement cumulé"),
-    el("div", { class: "meta" }, `${data.seasons.length} saison(s) · ${seasons}`),
-    table(data.alltime, ALLTIME_COLS, "identity", "teams")
+    el("h2", {}, "Cumul général"),
+    el("div", { class: "meta" },
+      `toute l'histoire de la ligue · ${data.seasons.length} saison(s) MPG · ${seasons}`),
+    el("p", { class: "note" },
+      "Les saisons n'ont ni la même longueur ni le même nombre d'équipes : " +
+      "la colonne Pts/m est la seule comparable d'une saison à l'autre."),
+    table(data.alltime, SUM_COLS, "identity", "teams")
+  ];
+}
+
+function footballSeasonPanel(entry) {
+  return [
+    el("h2", {}, `Saison ${entry.label}`),
+    el("div", { class: "meta" },
+      `cumul de la saison de football ${entry.label} · ` +
+      `${entry.seasons.length} saison(s) MPG : ${entry.seasons.join(", ")}`),
+    table(entry.table, SUM_COLS, "identity", "teams")
   ];
 }
 
@@ -170,11 +195,18 @@ function render(data) {
   document.getElementById("footer").textContent =
     `${data.runs.length} relevé(s) enregistré(s) · données générées le ${when(data.generated_at)}`;
 
-  const views = [{ id: "alltime", label: "Cumulé", build: () => alltimePanel(data) }];
+  const views = [{ id: "alltime", label: "Cumul général", build: () => alltimePanel(data) }];
+  for (const entry of data.football_seasons || []) {
+    views.push({
+      id: "fs-" + entry.label,
+      label: entry.label,
+      build: () => footballSeasonPanel(entry)
+    });
+  }
   for (const season of [...data.seasons].reverse()) {
     views.push({
       id: season.season_id,
-      label: season.season_label + (season.is_final ? " ✓" : ""),
+      label: `${season.season_label}${season.is_final ? " ✓" : ""}`,
       build: () => standingPanel(season)
     });
   }
@@ -193,7 +225,7 @@ function render(data) {
     button.addEventListener("click", () => show(view.id));
     tabs.append(button);
   }
-  show(data.latest && data.seasons.length ? data.seasons[data.seasons.length - 1].season_id : "alltime");
+  show(data.seasons.length ? data.seasons[data.seasons.length - 1].season_id : "alltime");
 }
 
 fetch("data/standings.json", { cache: "no-store" })
