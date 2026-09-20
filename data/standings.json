@@ -1,6 +1,6 @@
 {
   "league": "Ligue MPG",
-  "generated_at": "2026-09-20T20:24:17+02:00",
+  "generated_at": "2026-09-20T20:28:30+02:00",
   "total_matchdays": 10,
   "identity_key": "team",
   "latest": {
@@ -10,7 +10,6 @@
     "total_matchdays": 10,
     "is_final": false,
     "captured_at": "2026-09-20T19:50:15+02:00",
-    "screenshot": "data/shots/2026-09-20_1950_S1-MD05.png",
     "rows": [
       {
         "rank": 1,
@@ -100,7 +99,6 @@
       "total_matchdays": 10,
       "is_final": false,
       "captured_at": "2026-09-20T19:50:15+02:00",
-      "screenshot": "data/shots/2026-09-20_1950_S1-MD05.png",
       "rows": [
         {
           "rank": 1,

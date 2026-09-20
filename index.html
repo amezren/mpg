@@ -151,12 +151,6 @@ function standingPanel(standing) {
       `Journée ${standing.matchday}/${standing.total_matchdays} · relevé du ${when(standing.captured_at)}`),
     table(standing.rows, colsFor(standing.rows), "team", "manager")
   ];
-  if (standing.screenshot) {
-    parts.push(el("figure", {}, [
-      el("img", { src: standing.screenshot, alt: "Capture du classement", loading: "lazy" }),
-      el("figcaption", {}, "Capture d’écran d’origine, telle que relevée sur MPG.")
-    ]));
-  }
   return parts;
 }
 
