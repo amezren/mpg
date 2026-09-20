@@ -89,7 +89,10 @@
   .badge.done { background: var(--done); color: var(--done-ink); }
   .badge.live { background: var(--live); color: var(--live-ink); }
 
-  .filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .filter {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px;
+  }
+  .filter-label { color: var(--muted); font-size: 0.8rem; margin-right: 2px; }
   .chip {
     border: 1px solid var(--line); background: transparent; color: var(--muted);
     padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;
@@ -329,6 +332,7 @@ function cumulativePanel({ title, table }) {
   };
 
   const controls = el("div", { class: "filter", role: "group", "aria-label": "Trier par" });
+  controls.append(el("span", { class: "filter-label" }, "Trier par :"));
   for (const [name, sort] of Object.entries(SORTS)) {
     const button = el("button", { class: "chip", type: "button", "aria-pressed": "false" }, sort.label);
     button.addEventListener("click", () => apply(name));
