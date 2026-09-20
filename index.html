@@ -71,13 +71,8 @@
     font-family: inherit;
   }
   .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  /* A flex container beats the browser's own [hidden] rule, so say it here. */
-  .tabs[hidden] { display: none; }
-  .tabs.sub { margin: -6px 0 14px; padding-left: 14px; gap: 4px; }
-  .tabs.sub .tab { padding: 5px 11px; font-size: 0.8rem; border-radius: 7px; }
-  .tabs.sub .tab[aria-selected="true"] {
-    background: transparent; border-color: var(--accent); color: var(--accent);
-  }
+  /* Every table of the chosen period, one under the other. */
+  #stack { display: flex; flex-direction: column; gap: 14px; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--line);
@@ -134,19 +129,33 @@
 
   .empty { color: var(--muted); padding: 30px 0; text-align: center; }
 
-  /* Phones: keep the team, the goal difference, the ranking metric and how
-     many seasons it covers. Everything else is detail you can get on a
-     bigger screen. */
-  @media (max-width: 620px) {
+  /* A table drops columns as soon as it stops fitting, rather than at one
+     width for the whole page: the cumulative table carries nine statistics
+     and runs out of room long before a season table does. Team names must
+     never be clipped, and the page must never scroll sideways. */
+
+  /* Cumulative tables, first step: the extras go. */
+  @media (max-width: 1040px) {
+    .wide th:not(.keep):not(.mid), .wide td:not(.keep):not(.mid) { display: none; }
+  }
+  /* Cumulative tables, second step: down to the essentials. */
+  @media (max-width: 760px) {
+    .wide th:not(.keep), .wide td:not(.keep) { display: none; }
+  }
+  /* Season tables hold five statistics and fit much further down. */
+  @media (max-width: 660px) {
+    th:not(.keep), td:not(.keep) { display: none; }
+  }
+  /* Phones. */
+  @media (max-width: 660px) {
     :root { --stat-w: 3.6rem; --pos-w: 2.1rem; }
     body { padding: 18px 16px 48px; }
     h1 { font-size: 1.35rem; }
-    th:not(.keep), td:not(.keep) { display: none; }
     th .full { display: none; }
     th .short { display: inline; }
     th, td { padding: 10px 5px; }
     .panel { padding: 12px; }
-    .tabs.sub { padding-left: 8px; }
+    #stack { gap: 10px; }
   }
 </style>
 </head>
@@ -157,8 +166,7 @@
     <div class="sub" id="subtitle">Chargement…</div>
   </header>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Période"></nav>
-  <nav class="tabs sub" id="subtabs" role="tablist" aria-label="Saison" hidden></nav>
-  <main class="panel" id="panel"><div class="empty">Chargement…</div></main>
+  <main id="stack"><section class="panel"><div class="empty">Chargement…</div></section></main>
 </div>
 
 <script>
@@ -185,23 +193,21 @@ const SUM_COLS = [
   "points_per_match", "played", "seasons", "titles"
 ];
 
-// The two ways to read a cumulative table. Which one you pick decides both
-// who is listed and what the ranking means, so they travel together.
-const VIEWS = {
-  all: {
-    label: "Tous les participants",
-    sortKey: "points_per_match",
-    keep: (row) => row.seasons >= 1,
-    sort: (a, b) =>
+// Everyone who played at least one season is listed. Seasons are of unequal
+// length, so the table can be read two ways and the buttons pick which.
+const SORTS = {
+  points: {
+    label: "Points",
+    key: "points",
+    compare: (a, b) =>
+      b.points - a.points || b.goal_diff - a.goal_diff || b.wins - a.wins
+  },
+  average: {
+    label: "Points / match",
+    key: "points_per_match",
+    compare: (a, b) =>
       b.points_per_match - a.points_per_match || b.points - a.points ||
       b.goal_diff - a.goal_diff
-  },
-  loyal: {
-    label: "Les fidèles",
-    sortKey: "points",
-    keep: (row, n) => row.seasons >= n,
-    sort: (a, b) =>
-      b.points - a.points || b.goal_diff - a.goal_diff || b.wins - a.wins
   }
 };
 
@@ -231,8 +237,11 @@ function cellText(key, raw) {
  * One table. `keys` are the statistic columns in order; `keep` lists the ones
  * that survive on a phone, alongside the rank and the team.
  */
-function renderTable({ rows, keys, labelKey, aliasKey, keep }) {
+function renderTable({ rows, keys, labelKey, aliasKey, keep, mid, wide }) {
   const kept = new Set(keep || []);
+  const middle = new Set(mid || []);
+  const cls = (key) =>
+    "stat" + (kept.has(key) ? " keep" : middle.has(key) ? " mid" : "");
   const hasAlias = aliasKey && rows.some((r) => (r[aliasKey] || "").trim() &&
                                                 r[aliasKey] !== r[labelKey]);
 
@@ -245,7 +254,7 @@ function renderTable({ rows, keys, labelKey, aliasKey, keep }) {
     const label = LABELS[key] || key;
     const short = SHORT[key];
     head.append(el("th", {
-      class: "stat" + (kept.has(key) ? " keep" : ""),
+      class: cls(key),
       "data-key": key,
       title: TITLES[key] || label
     }, short
@@ -262,14 +271,18 @@ function renderTable({ rows, keys, labelKey, aliasKey, keep }) {
     if (hasAlias) tr.append(el("td", { class: "alias" }, row[aliasKey] || ""));
     for (const key of keys) {
       const raw = row[key];
-      let cls = "stat" + (kept.has(key) ? " keep" : "");
-      if (key === "goal_diff" && typeof raw === "number") cls += raw > 0 ? " up" : raw < 0 ? " down" : "";
-      tr.append(el("td", { class: cls, "data-key": key }, cellText(key, raw)));
+      let klass = cls(key);
+      if (key === "goal_diff" && typeof raw === "number") {
+        klass += raw > 0 ? " up" : raw < 0 ? " down" : "";
+      }
+      tr.append(el("td", { class: klass, "data-key": key }, cellText(key, raw)));
     }
     body.append(tr);
   });
 
-  return el("div", { class: "scroll" }, [el("table", {}, [el("thead", {}, head), body])]);
+  return el("div", { class: "scroll" }, [
+    el("table", wide ? { class: "wide" } : {}, [el("thead", {}, head), body])
+  ]);
 }
 
 function statusBadge(isFinal) {
@@ -292,59 +305,47 @@ function standingPanel(standing) {
   ];
 }
 
-/** A cumulative table, with the filter that decides who is in it and how it ranks. */
-function cumulativePanel({ title, table, seasonCount }) {
-  const heading = el("h2", {}, title);
+/** A cumulative table: everyone who played, sorted the way the buttons say. */
+function cumulativePanel({ title, table }) {
   const holder = el("div", {});
   const buttons = {};
 
   const apply = (name) => {
-    const view = VIEWS[name];
+    const sort = SORTS[name];
     for (const [key, button] of Object.entries(buttons)) {
       button.setAttribute("aria-pressed", String(key === name));
     }
-    const rows = table.filter((r) => view.keep(r, seasonCount)).sort(view.sort);
-    holder.replaceChildren(
-      rows.length
-        ? renderTable({
-            rows,
-            keys: SUM_COLS.map((k) => k),
-            labelKey: "identity",
-            aliasKey: "teams",
-            // On a phone: the difference, the metric it is ranked on, and
-            // how many seasons that covers.
-            keep: ["goal_diff", view.sortKey, "seasons"]
-          })
-        : el("div", { class: "empty" }, "Personne n’a joué toutes les saisons.")
-    );
+    holder.replaceChildren(renderTable({
+      rows: [...table].sort(sort.compare),
+      keys: SUM_COLS,
+      labelKey: "identity",
+      aliasKey: "teams",
+      wide: true,
+      // Narrow: the difference, the metric it is sorted on, and how many
+      // seasons that covers. Medium: MPG's own five as well.
+      keep: ["goal_diff", sort.key, "seasons"],
+      mid: ["wins", "draws", "losses", "points", "points_per_match"]
+    }));
   };
 
-  const filter = el("div", { class: "filter", role: "group", "aria-label": "Qui comparer" });
-  for (const [name, view] of Object.entries(VIEWS)) {
-    const button = el("button", { class: "chip", type: "button", "aria-pressed": "false" }, view.label);
+  const controls = el("div", { class: "filter", role: "group", "aria-label": "Trier par" });
+  for (const [name, sort] of Object.entries(SORTS)) {
+    const button = el("button", { class: "chip", type: "button", "aria-pressed": "false" }, sort.label);
     button.addEventListener("click", () => apply(name));
     buttons[name] = button;
-    filter.append(button);
+    controls.append(button);
   }
 
-  apply("all");
-  return [heading, filter, holder];
+  apply("points");
+  return [el("h2", {}, title), controls, holder];
 }
 
 function alltimePanel(data) {
-  return cumulativePanel({
-    title: "Cumul général",
-    table: data.alltime,
-    seasonCount: data.seasons.length
-  });
+  return cumulativePanel({ title: "Cumul général", table: data.alltime });
 }
 
 function footballSeasonPanel(entry) {
-  return cumulativePanel({
-    title: `Cumul ${entry.label}`,
-    table: entry.table,
-    seasonCount: entry.seasons.length
-  });
+  return cumulativePanel({ title: `Cumul ${entry.label}`, table: entry.table });
 }
 
 function render(data) {
@@ -358,61 +359,41 @@ function render(data) {
   // A football season that held a single league has nothing to group, so it
   // shows that league directly instead of an identical "cumul" beside it.
   const seasonNumber = (s) => parseInt(String(s.season_id).replace(/\D/g, ""), 10) || 0;
+
+  // The tabs pick a period: the whole history, or one football season. A
+  // football season shows everything it holds, stacked - its cumulative table
+  // first when there is more than one league to add up, then each league from
+  // the most recent down.
   const scopes = [
-    { id: "alltime", label: "Tout l’historique",
-      panels: [{ id: "alltime", label: "Cumul", build: () => alltimePanel(data) }] }
+    { id: "alltime", label: "Tout l’historique", blocks: () => [alltimePanel(data)] }
   ];
 
   for (const entry of data.football_seasons || []) {
     const runs = data.seasons
       .filter((s) => s.football_season === entry.label)
       .sort((a, b) => seasonNumber(b) - seasonNumber(a));
-    const panels = runs.map((season) => ({
-      id: season.season_id,
-      label: season.season_label,
-      build: () => standingPanel(season)
-    }));
-    if (runs.length > 1) {
-      panels.unshift({
-        id: "cumul-" + entry.label,
-        label: "Cumul",
-        build: () => footballSeasonPanel(entry)
-      });
-    }
-    scopes.push({ id: "fs-" + entry.label, label: entry.label, panels });
+    scopes.push({
+      id: "fs-" + entry.label,
+      label: entry.label,
+      blocks: () => [
+        ...(runs.length > 1 ? [footballSeasonPanel(entry)] : []),
+        ...runs.map((season) => standingPanel(season))
+      ]
+    });
   }
 
   const tabs = document.getElementById("tabs");
-  const subtabs = document.getElementById("subtabs");
-  const panel = document.getElementById("panel");
+  const stack = document.getElementById("stack");
   tabs.replaceChildren();   // rendering twice must not stack two rows of tabs
-  let current = null;
 
-  const showPanel = (scope, panelId) => {
-    const chosen = scope.panels.find((p) => p.id === panelId) || scope.panels[0];
-    for (const button of subtabs.children) {
-      button.setAttribute("aria-selected", String(button.dataset.id === chosen.id));
-    }
-    panel.replaceChildren(...chosen.build());
-  };
-
-  const showScope = (scopeId, panelId) => {
-    current = scopes.find((s) => s.id === scopeId) || scopes[0];
+  const showScope = (scopeId) => {
+    const scope = scopes.find((s) => s.id === scopeId) || scopes[0];
     for (const button of tabs.children) {
-      button.setAttribute("aria-selected", String(button.dataset.id === current.id));
+      button.setAttribute("aria-selected", String(button.dataset.id === scope.id));
     }
-    // A single panel needs no second row: the scope tab already picked it.
-    subtabs.replaceChildren();
-    subtabs.hidden = current.panels.length < 2;
-    if (!subtabs.hidden) {
-      for (const view of current.panels) {
-        const button = el("button", { class: "tab", role: "tab", "aria-selected": "false" }, view.label);
-        button.dataset.id = view.id;
-        button.addEventListener("click", () => showPanel(current, view.id));
-        subtabs.append(button);
-      }
-    }
-    showPanel(current, panelId);
+    stack.replaceChildren(
+      ...scope.blocks().map((parts) => el("section", { class: "panel" }, parts))
+    );
   };
 
   for (const scope of scopes) {
@@ -424,8 +405,7 @@ function render(data) {
 
   // Open on what is being played right now.
   const running = data.seasons[data.seasons.length - 1];
-  showScope(running ? "fs-" + running.football_season : "alltime",
-            running ? running.season_id : "alltime");
+  showScope(running ? "fs-" + running.football_season : "alltime");
 }
 
 fetch("data/standings.json", { cache: "no-store" })
@@ -436,8 +416,8 @@ fetch("data/standings.json", { cache: "no-store" })
   .then(render)
   .catch(() => {
     document.getElementById("subtitle").textContent = "";
-    document.getElementById("panel").replaceChildren(
-      el("div", { class: "empty" }, "Aucune donnée.")
+    document.getElementById("stack").replaceChildren(
+      el("section", { class: "panel" }, el("div", { class: "empty" }, "Aucune donnée."))
     );
   });
 </script>
