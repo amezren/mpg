@@ -43,6 +43,13 @@
     padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 0.86rem;
   }
   .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* A flex container beats the browser's own [hidden] rule, so say it here. */
+  .tabs[hidden] { display: none; }
+  .tabs.sub { margin: -6px 0 14px; padding-left: 14px; gap: 4px; }
+  .tabs.sub .tab { padding: 5px 11px; font-size: 0.8rem; border-radius: 7px; }
+  .tabs.sub .tab[aria-selected="true"] {
+    background: transparent; border-color: var(--accent); color: var(--accent);
+  }
   .panel {
     background: var(--panel); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 16px; overflow: hidden;
@@ -79,7 +86,8 @@
     <h1 id="league">Classement MPG</h1>
     <div class="sub" id="subtitle">Chargement…</div>
   </header>
-  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Période"></nav>
+  <nav class="tabs sub" id="subtabs" role="tablist" aria-label="Saison" hidden></nav>
   <main class="panel" id="panel"><div class="empty">Chargement…</div></main>
   <footer id="footer"></footer>
 </div>
@@ -177,10 +185,12 @@ function alltimePanel(data) {
 
 function footballSeasonPanel(entry) {
   return [
-    el("h2", {}, `Saison ${entry.label}`),
+    el("h2", {}, `Cumul ${entry.label}`),
     el("div", { class: "meta" },
-      `cumul de la saison de football ${entry.label} · ` +
-      `${entry.seasons.length} saison(s) MPG : ${entry.seasons.join(", ")}`),
+      `les ${entry.seasons.length} saisons MPG jouées en ${entry.label} ` +
+      `additionnées : ${entry.seasons.join(", ")}`),
+    el("p", { class: "note" },
+      "Les saisons MPG n'ont pas toutes la même longueur : Pts/m les rend comparables."),
     table(entry.table, SUM_COLS, "identity", "teams")
   ];
 }
@@ -195,37 +205,80 @@ function render(data) {
   document.getElementById("footer").textContent =
     `${data.runs.length} relevé(s) enregistré(s) · données générées le ${when(data.generated_at)}`;
 
-  const views = [{ id: "alltime", label: "Cumul général", build: () => alltimePanel(data) }];
+  // The tabs follow the way the competition is actually nested:
+  // the whole history > one football season > one MPG league inside it.
+  // A football season that held a single league has nothing to group, so it
+  // shows that league directly instead of an identical "cumul" beside it.
+  const seasonNumber = (s) => parseInt(String(s.season_id).replace(/\D/g, ""), 10) || 0;
+  const scopes = [
+    { id: "alltime", label: "Tout l’historique", panels: [
+      { id: "alltime", label: "Cumul", build: () => alltimePanel(data) }
+    ] }
+  ];
+
   for (const entry of data.football_seasons || []) {
-    views.push({
-      id: "fs-" + entry.label,
-      label: entry.label,
-      build: () => footballSeasonPanel(entry)
-    });
-  }
-  for (const season of [...data.seasons].reverse()) {
-    views.push({
+    const runs = data.seasons
+      .filter((s) => s.football_season === entry.label)
+      .sort((a, b) => seasonNumber(b) - seasonNumber(a));
+    const panels = runs.map((season) => ({
       id: season.season_id,
       label: `${season.season_label}${season.is_final ? " ✓" : ""}`,
       build: () => standingPanel(season)
-    });
+    }));
+    if (runs.length > 1) {
+      panels.unshift({
+        id: "cumul-" + entry.label,
+        label: "Cumul",
+        build: () => footballSeasonPanel(entry)
+      });
+    }
+    scopes.push({ id: "fs-" + entry.label, label: entry.label, panels });
   }
 
   const tabs = document.getElementById("tabs");
+  const subtabs = document.getElementById("subtabs");
   const panel = document.getElementById("panel");
-  const show = (id) => {
-    for (const button of tabs.children) {
-      button.setAttribute("aria-selected", String(button.dataset.id === id));
+  tabs.replaceChildren();   // rendering twice must not stack two rows of tabs
+  let current = null;
+
+  const showPanel = (scope, panelId) => {
+    const chosen = scope.panels.find((p) => p.id === panelId) || scope.panels[0];
+    for (const button of subtabs.children) {
+      button.setAttribute("aria-selected", String(button.dataset.id === chosen.id));
     }
-    panel.replaceChildren(...views.find((v) => v.id === id).build());
+    panel.replaceChildren(...chosen.build());
   };
-  for (const view of views) {
-    const button = el("button", { class: "tab", role: "tab", "aria-selected": "false" }, view.label);
-    button.dataset.id = view.id;
-    button.addEventListener("click", () => show(view.id));
+
+  const showScope = (scopeId, panelId) => {
+    current = scopes.find((s) => s.id === scopeId) || scopes[0];
+    for (const button of tabs.children) {
+      button.setAttribute("aria-selected", String(button.dataset.id === current.id));
+    }
+    // A single panel needs no second row: the scope tab already picked it.
+    subtabs.replaceChildren();
+    subtabs.hidden = current.panels.length < 2;
+    if (!subtabs.hidden) {
+      for (const view of current.panels) {
+        const button = el("button", { class: "tab", role: "tab", "aria-selected": "false" }, view.label);
+        button.dataset.id = view.id;
+        button.addEventListener("click", () => showPanel(current, view.id));
+        subtabs.append(button);
+      }
+    }
+    showPanel(current, panelId);
+  };
+
+  for (const scope of scopes) {
+    const button = el("button", { class: "tab", role: "tab", "aria-selected": "false" }, scope.label);
+    button.dataset.id = scope.id;
+    button.addEventListener("click", () => showScope(scope.id));
     tabs.append(button);
   }
-  show(data.seasons.length ? data.seasons[data.seasons.length - 1].season_id : "alltime");
+
+  // Open on what is being played right now.
+  const running = data.seasons[data.seasons.length - 1];
+  showScope(running ? "fs-" + running.football_season : "alltime",
+            running ? running.season_id : "alltime");
 }
 
 fetch("data/standings.json", { cache: "no-store" })
