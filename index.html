@@ -83,11 +83,9 @@
     background: var(--panel); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 16px; overflow: hidden;
   }
-  .panel h2 { font-size: 1.05rem; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .meta { color: var(--muted); font-size: 0.82rem; margin-bottom: 14px; }
-  .note {
-    color: var(--muted); font-size: 0.82rem; margin: 0 0 14px;
-    padding-left: 10px; border-left: 2px solid var(--accent);
+  .panel h2 {
+    font-size: 1.05rem; margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
   .badge {
     display: inline-block; padding: 2px 10px; border-radius: 999px;
@@ -96,7 +94,7 @@
   .badge.done { background: var(--done); color: var(--done-ink); }
   .badge.live { background: var(--live); color: var(--live-ink); }
 
-  .filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+  .filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
   .chip {
     border: 1px solid var(--line); background: transparent; color: var(--muted);
     padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;
@@ -134,7 +132,6 @@
     :root:not([data-theme="light"]) td.down { color: #e0705f; }
   }
 
-  footer { color: var(--muted); font-size: 0.78rem; margin-top: 22px; text-align: center; }
   .empty { color: var(--muted); padding: 30px 0; text-align: center; }
 
   /* Phones: keep the team, the goal difference, the ranking metric and how
@@ -162,7 +159,6 @@
   <nav class="tabs" id="tabs" role="tablist" aria-label="Période"></nav>
   <nav class="tabs sub" id="subtabs" role="tablist" aria-label="Saison" hidden></nav>
   <main class="panel" id="panel"><div class="empty">Chargement…</div></main>
-  <footer id="footer"></footer>
 </div>
 
 <script>
@@ -195,10 +191,6 @@ const VIEWS = {
   all: {
     label: "Tous les participants",
     sortKey: "points_per_match",
-    describe: (n) =>
-      `tous ceux qui ont joué au moins une des ${n} saisons, classés aux ` +
-      `points par match : ils n'ont pas joué le même nombre de matchs, ` +
-      `les totaux bruts ne seraient pas comparables.`,
     keep: (row) => row.seasons >= 1,
     sort: (a, b) =>
       b.points_per_match - a.points_per_match || b.points - a.points ||
@@ -207,10 +199,6 @@ const VIEWS = {
   loyal: {
     label: "Les fidèles",
     sortKey: "points",
-    describe: (n) =>
-      `seulement ceux présents sur les ${n} saisons, classés aux points ` +
-      `totaux : ayant joué exactement les mêmes saisons, ils sont directement ` +
-      `comparables.`,
     keep: (row, n) => row.seasons >= n,
     sort: (a, b) =>
       b.points - a.points || b.goal_diff - a.goal_diff || b.wins - a.wins
@@ -294,10 +282,6 @@ function standingPanel(standing) {
   const keys = goals ? SEASON_COLS.concat(["goals_for", "goals_against"]) : SEASON_COLS;
   return [
     el("h2", {}, [standing.season_label, statusBadge(standing.is_final)]),
-    el("div", { class: "meta" },
-      `saison de football ${standing.football_season} · journée ` +
-      `${standing.matchday}/${standing.total_matchdays} · ` +
-      `${standing.rows.length} équipes · relevé du ${when(standing.captured_at)}`),
     renderTable({
       rows: [...standing.rows].sort((a, b) => a.rank - b.rank),
       keys,
@@ -309,10 +293,8 @@ function standingPanel(standing) {
 }
 
 /** A cumulative table, with the filter that decides who is in it and how it ranks. */
-function cumulativePanel({ title, meta, table, seasonCount }) {
+function cumulativePanel({ title, table, seasonCount }) {
   const heading = el("h2", {}, title);
-  const line = el("div", { class: "meta" }, meta);
-  const note = el("p", { class: "note" }, "");
   const holder = el("div", {});
   const buttons = {};
 
@@ -321,7 +303,6 @@ function cumulativePanel({ title, meta, table, seasonCount }) {
     for (const [key, button] of Object.entries(buttons)) {
       button.setAttribute("aria-pressed", String(key === name));
     }
-    note.textContent = view.describe(seasonCount);
     const rows = table.filter((r) => view.keep(r, seasonCount)).sort(view.sort);
     holder.replaceChildren(
       rows.length
@@ -347,16 +328,12 @@ function cumulativePanel({ title, meta, table, seasonCount }) {
   }
 
   apply("all");
-  return [heading, line, filter, note, holder];
+  return [heading, filter, holder];
 }
 
 function alltimePanel(data) {
-  const seasons = data.seasons
-    .map((s) => `${s.season_label} ${s.football_season}`)
-    .join(" · ");
   return cumulativePanel({
     title: "Cumul général",
-    meta: `toute l’histoire de la ligue · ${data.seasons.length} saison(s) MPG · ${seasons}`,
     table: data.alltime,
     seasonCount: data.seasons.length
   });
@@ -365,8 +342,6 @@ function alltimePanel(data) {
 function footballSeasonPanel(entry) {
   return cumulativePanel({
     title: `Cumul ${entry.label}`,
-    meta: `les ${entry.seasons.length} saisons MPG jouées en ${entry.label} ` +
-          `additionnées : ${entry.seasons.join(", ")}`,
     table: entry.table,
     seasonCount: entry.seasons.length
   });
@@ -375,12 +350,8 @@ function footballSeasonPanel(entry) {
 function render(data) {
   document.title = data.league + " — classement";
   document.getElementById("league").textContent = data.league;
-  const latest = data.latest;
-  document.getElementById("subtitle").textContent = latest
-    ? `${latest.season_label} · journée ${latest.matchday}/${latest.total_matchdays} · mis à jour le ${when(data.generated_at)}`
-    : "Aucun relevé pour l’instant.";
-  document.getElementById("footer").textContent =
-    `${data.runs.length} relevé(s) enregistré(s) · données générées le ${when(data.generated_at)}`;
+  document.getElementById("subtitle").textContent =
+    "Mise à jour le " + when(data.generated_at);
 
   // The tabs follow the way the competition is actually nested:
   // the whole history > one football season > one MPG league inside it.
@@ -466,7 +437,7 @@ fetch("data/standings.json", { cache: "no-store" })
   .catch(() => {
     document.getElementById("subtitle").textContent = "";
     document.getElementById("panel").replaceChildren(
-      el("div", { class: "empty" }, "Aucune donnée : lancez `python -m mpg run` puis rechargez.")
+      el("div", { class: "empty" }, "Aucune donnée.")
     );
   });
 </script>
